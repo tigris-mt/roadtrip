@@ -1,0 +1,3 @@
+[submodule "mods/b"]
+	path = mods/b
+	url = https://github.com/tigris-mt/b.git
