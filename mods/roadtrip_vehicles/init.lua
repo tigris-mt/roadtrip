@@ -4,7 +4,7 @@ minetest.register_entity("roadtrip_vehicles:car", {
 	initial_properties = {
 		physical = true,
 		collide_with_objects = true,
-		collisionbox = {-1, -1, -1, 1, 1, 1},
+		collisionbox = {-3, -0.5, -1, 3, 1, 1},
 		mesh = "roadtrip_vehicles_car.b3d",
 		textures = {"roadtrip_sand.png^[colorize:#0f0:127"},
 		pointable = true,
