@@ -28,6 +28,7 @@ minetest.register_entity("roadtrip_vehicles:car", {
 				clicker:set_detach()
 			else
 				clicker:set_attach(self.object, "", vector.zero(), vector.zero(), true)
+				clicker:set_look_horizontal(self.object:get_yaw() - math.pi / 2)
 			end
 		end
 	end,
@@ -42,32 +43,36 @@ minetest.register_entity("roadtrip_vehicles:car", {
 				local previous_dir = self.object:get_velocity():normalize()
 				local dir = vector.new(math.cos(self.object:get_yaw()), 0, math.sin(self.object:get_yaw()))
 
+				local c = driver:get_player_control()
+
+				if c.up then
+					self.object:set_acceleration(self.object:get_acceleration() + dir * 200 / math.sqrt(math.max(1, speed)))
+				end
+
 				self.object:set_velocity(self.object:get_velocity() - previous_dir * speed)
 				self.object:set_velocity(self.object:get_velocity() + dir * speed)
 
-				local c = driver:get_player_control()
-				if c.up then
-					self.object:set_acceleration(self.object:get_acceleration() + dir * 50 / math.sqrt(math.max(1, speed)))
-				end
-
-				if c.down then
+				if c.jump then
 					self.object:set_acceleration(self.object:get_acceleration() - self.object:get_velocity() * 2)
 				end
 
-				if c.left then
-					self.data.steering_angle = math.max(self.data.steering_angle - 0.3 * dtime, -0.9)
-				elseif c.right then
-					self.data.steering_angle = math.min(self.data.steering_angle + 0.3 * dtime, 0.9)
-				else
-					self.data.steering_angle = self.data.steering_angle - self.data.steering_angle * 2 * dtime
-				end
+				local steering_angle_limit = 0.9
+				local tau = math.pi * 2
+				local driver_look = (driver:get_look_horizontal() + math.pi / 2) % tau
+				local car_yaw = self.object:get_yaw()
+
+				local a = (driver_look - car_yaw) % tau
+				local b = (car_yaw - driver_look) % tau
+
+				local difference = (a < b) and -a or b
+
+				local new_steering_angle = self.data.steering_angle + (difference - self.data.steering_angle) * 5 * dtime
+
+				self.data.steering_angle = (new_steering_angle > self.data.steering_angle) and math.min(difference, new_steering_angle) or math.max(difference, new_steering_angle)
 
 				local yaw_change = self.data.steering_angle * math.max(0, math.log(speed)) * dtime
 
-				if math.abs(yaw_change) > 0.05 * dtime then
-					self.object:set_yaw(self.object:get_yaw() - yaw_change)
-					driver:set_look_horizontal(driver:get_look_horizontal() - yaw_change)
-				end
+				self.object:set_yaw(self.object:get_yaw() - yaw_change)
 
 				return
 			end
