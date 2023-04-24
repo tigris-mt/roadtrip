@@ -107,5 +107,5 @@ minetest.register_on_generated(function(minp, maxp)
 		return
 	end
 
-	minetest.add_entity(vector.new((minp.x + maxp.x) / 2, 5, (minp.z + maxp.z) / 2), "roadtrip_vehicles:car")
+	minetest.add_entity(vector.new((minp.x + maxp.x) / 2, 16, (minp.z + maxp.z) / 2), "roadtrip_vehicles:car")
 end)

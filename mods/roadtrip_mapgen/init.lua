@@ -1,3 +1,4 @@
+local c_air = minetest.get_content_id("air")
 local c_sand = minetest.get_content_id("roadtrip:sand")
 local c_black = minetest.get_content_id("roadtrip:black_asphalt")
 local c_yellow = minetest.get_content_id("roadtrip:yellow_asphalt")
@@ -31,18 +32,19 @@ minetest.register_on_generated(function(minp, maxp, blockseed)
 	local perlin = minetest.get_perlin_map({
 		seed = 1344,
 		scale = 8,
-		spread = vector.new(128, 128, 128),
+		spread = vector.new(512, 512, 512),
 		offset = 4,
 		octaves = 6,
 		persist = 0.5,
 	}, vector.new(1, 1, 1) * (emax.x - emin.x + 1)):get_3d_map_flat(emin)
 
+	local function height(x, z)
+		return math.floor(perlin[area:index(x, 0, z)])
+	end
+
 	for z=minp.z,maxp.z do
-		local road_x = road_x(z)
-		local road_width = road_width(z)
 		for x=minp.x,maxp.x do
-			local rxd = math.max(0, math.floor(math.max(0, (math.abs(x - road_x) - road_width) / 4)))
-			local h = math.max(0, math.min(perlin[area:index(x, 0, z)], rxd))
+			local h = height(x, z)
 			for y=minp.y,math.min(h, maxp.y) do
 				data[area:index(x, y, z)] = c_sand
 			end
@@ -63,6 +65,7 @@ minetest.register_on_generated(function(minp, maxp, blockseed)
 		for i=0,length do
 			for offset=-offset_limit,offset_limit do
 				local current = (previous_center + normalized * i + vector.new(offset, 0, 0)):round()
+				current.y = height(current.x, current.z)
 				if area:containsp(current) and data[area:indexp(current)] == c_sand then
 					local color = c_black
 					if offset == 0 then
@@ -83,5 +86,6 @@ end)
 local start_z = b.WORLD.min.z
 
 function roadtrip.start_pos()
-	return vector.new(road_x(start_z) + math.random(-road_width(start_z), road_width(start_z)), 1, start_z)
+	local x = road_x(start_z) + math.random(-road_width(start_z), road_width(start_z))
+	return vector.new(x, 16, start_z)
 end
