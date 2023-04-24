@@ -4,7 +4,7 @@ minetest.register_entity("roadtrip_vehicles:car", {
 	initial_properties = {
 		physical = true,
 		collide_with_objects = true,
-		collisionbox = {-3, -0.5, -1, 3, 1, 1},
+		collisionbox = {-1, -0.5, -1, 1, 1, 1},
 		mesh = "roadtrip_vehicles_car.b3d",
 		textures = {"roadtrip_sand.png^[colorize:#0f0:127"},
 		pointable = true,
@@ -36,7 +36,7 @@ minetest.register_entity("roadtrip_vehicles:car", {
 	on_step = function(self, dtime, moveresult)
 		for _,driver in ipairs(self.object:get_children()) do
 			if driver:is_player() then
-				self.object:set_acceleration(gravity - self.object:get_velocity() * 1)
+				self.object:set_acceleration(gravity - self.object:get_velocity() * 5)
 
 				local speed = self.object:get_velocity():length()
 
@@ -46,29 +46,26 @@ minetest.register_entity("roadtrip_vehicles:car", {
 				local c = driver:get_player_control()
 
 				if c.up then
-					self.object:set_acceleration(self.object:get_acceleration() + dir * 200 / math.sqrt(math.max(1, speed)))
+					self.object:set_acceleration(self.object:get_acceleration() + dir * 480 / math.sqrt(math.max(1, speed)))
+				elseif c.down then
+					self.object:set_acceleration(self.object:get_acceleration() - dir * 120 / math.sqrt(math.max(1, speed)))
 				end
 
-				self.object:set_velocity(self.object:get_velocity() - previous_dir * speed)
-				self.object:set_velocity(self.object:get_velocity() + dir * speed)
-
 				if c.jump then
-					self.object:set_acceleration(self.object:get_acceleration() - self.object:get_velocity() * 2)
+					self.object:set_acceleration(self.object:get_acceleration() - self.object:get_velocity() * 5)
 				end
 
 				local steering_angle_limit = 0.9
-				local tau = math.pi * 2
-				local driver_look = (driver:get_look_horizontal() + math.pi / 2) % tau
+				local driver_look = driver:get_look_horizontal() + math.pi / 2
 				local car_yaw = self.object:get_yaw()
 
-				local a = (driver_look - car_yaw) % tau
-				local b = (car_yaw - driver_look) % tau
-
-				local difference = (a < b) and -a or b
+				local difference = b.math.angledelta(driver_look, car_yaw)
 
 				local new_steering_angle = self.data.steering_angle + (difference - self.data.steering_angle) * 5 * dtime
 
 				self.data.steering_angle = (new_steering_angle > self.data.steering_angle) and math.min(difference, new_steering_angle) or math.max(difference, new_steering_angle)
+
+				self.data.steering_angle = math.max(-steering_angle_limit, math.min(self.data.steering_angle, steering_angle_limit))
 
 				local yaw_change = self.data.steering_angle * math.max(0, math.log(speed)) * dtime
 
