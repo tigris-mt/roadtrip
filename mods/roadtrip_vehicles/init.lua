@@ -15,8 +15,9 @@ minetest.register_entity("roadtrip_vehicles:car", {
 	on_activate = function(self, staticdata)
 		self.data = b.t.merge({
 			steering_angle = 0,
+			acceleration = vector.zero(),
 		}, (#staticdata > 0) and minetest.deserialize(minetest.decompress(staticdata)) or {})
-		self.object:set_acceleration(gravity)
+		self.data.acceleration = vector.copy(self.data.acceleration)
 	end,
 
 	get_staticdata = function(self)
@@ -37,37 +38,36 @@ minetest.register_entity("roadtrip_vehicles:car", {
 	on_step = function(self, dtime, moveresult)
 		if self.object:get_velocity():length() < 1 then
 			self.object:set_velocity(vector.zero())
+			self.data.acceleration = vector.zero()
 		end
 
-		local velocity_2d = self.object:get_velocity()
-		velocity_2d.y = 0
-
-		self.object:set_acceleration(gravity)
-
-		local function apply_friction(factor)
-			local a = self.object:get_acceleration()
-			self.object:set_acceleration(a - velocity_2d * factor)
+		local function velocity_2d(velocity)
+			local v = velocity and vector.copy(velocity) or self.object:get_velocity()
+			v.y = 0
+			return v
 		end
 
-		apply_friction(5)
+		self.data.acceleration = gravity
+
+		local friction = 0
 
 		for _,driver in ipairs(self.object:get_children()) do
 			if driver:is_player() then
-				local speed = velocity_2d:length()
+				local speed = velocity_2d():length()
 
-				local previous_dir = velocity_2d:normalize()
+				local previous_dir = velocity_2d():normalize()
 				local dir = vector.new(math.cos(self.object:get_yaw()), 0, math.sin(self.object:get_yaw()))
 
 				local c = driver:get_player_control()
 
 				if c.up then
-					self.object:set_acceleration(self.object:get_acceleration() + dir * 100 / math.sqrt(math.max(1, speed)))
+					self.data.acceleration = self.data.acceleration + dir * 120
 				elseif c.down then
-					self.object:set_acceleration(self.object:get_acceleration() - dir * 50 / math.sqrt(math.max(1, speed)))
+					self.data.acceleration = self.data.acceleration - dir * 40
 				end
 
 				if c.jump then
-					apply_friction(5)
+					friction = friction + 10
 				end
 
 				local steering_angle_limit = 0.9
@@ -86,9 +86,19 @@ minetest.register_entity("roadtrip_vehicles:car", {
 
 				self.object:set_yaw(self.object:get_yaw() - yaw_change)
 
-				return
+				break
 			end
 		end
+
+		friction = friction + 5
+
+		local previous_velocity = self.object:get_velocity()
+		local new_velocity = previous_velocity + self.data.acceleration * dtime
+
+		new_velocity.x = new_velocity.x / (1 + friction * dtime)
+		new_velocity.z = new_velocity.z / (1 + friction * dtime)
+
+		self.object:add_velocity(new_velocity - previous_velocity)
 	end,
 })
 
