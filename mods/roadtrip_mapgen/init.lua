@@ -32,9 +32,23 @@ minetest.register_on_generated(function(minp, maxp, blockseed)
 
 	local data = vm:get_data()
 
+	local perlin = minetest.get_perlin_map({
+		seed = 1344,
+		scale = 8,
+		spread = vector.new(128, 128, 128),
+		offset = 4,
+		octaves = 6,
+		persist = 0.5,
+	}, vector.new(1, 1, 1) * (emax.x - emin.x + 1)):get_3d_map_flat(emin)
+
 	for z=minp.z,maxp.z do
+		local road_x = road_x(z)
 		for x=minp.x,maxp.x do
-			data[area:index(x, 0, z)] = c_sand
+			local rxd = math.max(0, math.floor(math.max(0, math.abs(x - road_x) - road_width(z) * 2)))
+			local h = math.max(0, math.min(perlin[area:index(x, 0, z)], rxd))
+			for y=0,math.min(h, maxp.y) do
+				data[area:index(x, y, z)] = c_sand
+			end
 		end
 	end
 
