@@ -23,10 +23,6 @@ local function road_width(z)
 end
 
 minetest.register_on_generated(function(minp, maxp, blockseed)
-	if minp.y > 0 or maxp.y < 0 then
-		return
-	end
-
 	local vm, emin, emax = minetest.get_mapgen_object("voxelmanip")
 	local area = VoxelArea:new{MinEdge = emin, MaxEdge = emax}
 
@@ -43,13 +39,18 @@ minetest.register_on_generated(function(minp, maxp, blockseed)
 
 	for z=minp.z,maxp.z do
 		local road_x = road_x(z)
+		local road_width = road_width(z)
 		for x=minp.x,maxp.x do
-			local rxd = math.max(0, math.floor(math.max(0, math.abs(x - road_x) - road_width(z) * 2)))
+			local rxd = math.max(0, math.floor(math.max(0, (math.abs(x - road_x) - road_width) / 4)))
 			local h = math.max(0, math.min(perlin[area:index(x, 0, z)], rxd))
-			for y=0,math.min(h, maxp.y) do
+			for y=minp.y,math.min(h, maxp.y) do
 				data[area:index(x, y, z)] = c_sand
 			end
 		end
+	end
+
+	if minp.y > 0 or maxp.y < 0 then
+		return
 	end
 
 	for z=minp.z,maxp.z do

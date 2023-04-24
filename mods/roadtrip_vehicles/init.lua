@@ -9,6 +9,7 @@ minetest.register_entity("roadtrip_vehicles:car", {
 		textures = {"roadtrip_sand.png^[colorize:#0f0:127"},
 		pointable = true,
 		visual = "mesh",
+		stepheight = 1.5,
 	},
 
 	on_activate = function(self, staticdata)
@@ -34,25 +35,39 @@ minetest.register_entity("roadtrip_vehicles:car", {
 	end,
 
 	on_step = function(self, dtime, moveresult)
+		if self.object:get_velocity():length() < 1 then
+			self.object:set_velocity(vector.zero())
+		end
+
+		local velocity_2d = self.object:get_velocity()
+		velocity_2d.y = 0
+
+		self.object:set_acceleration(gravity)
+
+		local function apply_friction(factor)
+			local a = self.object:get_acceleration()
+			self.object:set_acceleration(a - velocity_2d * factor)
+		end
+
+		apply_friction(5)
+
 		for _,driver in ipairs(self.object:get_children()) do
 			if driver:is_player() then
-				self.object:set_acceleration(gravity - self.object:get_velocity() * 5)
+				local speed = velocity_2d:length()
 
-				local speed = self.object:get_velocity():length()
-
-				local previous_dir = self.object:get_velocity():normalize()
+				local previous_dir = velocity_2d:normalize()
 				local dir = vector.new(math.cos(self.object:get_yaw()), 0, math.sin(self.object:get_yaw()))
 
 				local c = driver:get_player_control()
 
 				if c.up then
-					self.object:set_acceleration(self.object:get_acceleration() + dir * 480 / math.sqrt(math.max(1, speed)))
+					self.object:set_acceleration(self.object:get_acceleration() + dir * 100 / math.sqrt(math.max(1, speed)))
 				elseif c.down then
-					self.object:set_acceleration(self.object:get_acceleration() - dir * 120 / math.sqrt(math.max(1, speed)))
+					self.object:set_acceleration(self.object:get_acceleration() - dir * 50 / math.sqrt(math.max(1, speed)))
 				end
 
 				if c.jump then
-					self.object:set_acceleration(self.object:get_acceleration() - self.object:get_velocity() * 5)
+					apply_friction(5)
 				end
 
 				local steering_angle_limit = 0.9
@@ -74,8 +89,6 @@ minetest.register_entity("roadtrip_vehicles:car", {
 				return
 			end
 		end
-
-		self.object:set_acceleration(gravity - self.object:get_velocity() * 1)
 	end,
 })
 
