@@ -16,6 +16,8 @@ minetest.register_entity("roadtrip_vehicles:car", {
 		self.data = b.t.merge({
 			steering_angle = 0,
 			acceleration = vector.zero(),
+			old_pos = self.object:get_pos(),
+			rolling_time = 0,
 		}, (#staticdata > 0) and minetest.deserialize(minetest.decompress(staticdata)) or {})
 		self.data.acceleration = vector.copy(self.data.acceleration)
 	end,
@@ -36,6 +38,8 @@ minetest.register_entity("roadtrip_vehicles:car", {
 	end,
 
 	on_step = function(self, dtime, moveresult)
+		self.data.old_pos = self.data.old_pos or self.object:get_pos()
+
 		if self.object:get_velocity():length() < 1 then
 			self.object:set_velocity(vector.zero())
 			self.data.acceleration = vector.zero()
@@ -51,12 +55,13 @@ minetest.register_entity("roadtrip_vehicles:car", {
 
 		local friction = 0
 
+		local dir = vector.new(math.cos(self.object:get_yaw()), 0, math.sin(self.object:get_yaw()))
+
 		for _,driver in ipairs(self.object:get_children()) do
 			if driver:is_player() then
 				local speed = velocity_2d():length()
 
 				local previous_dir = velocity_2d():normalize()
-				local dir = vector.new(math.cos(self.object:get_yaw()), 0, math.sin(self.object:get_yaw()))
 
 				local c = driver:get_player_control()
 
@@ -90,6 +95,20 @@ minetest.register_entity("roadtrip_vehicles:car", {
 			end
 		end
 
+		local roll_dir = (velocity_2d(self.object:get_pos()) - velocity_2d(self.data.old_pos)):normalize()
+
+		self.data.rolling_time = self.data.rolling_time + (self.data.old_pos.y - self.object:get_pos().y)
+
+		local instant_roll = math.sign(self.data.rolling_time) * dtime
+
+		if math.abs(instant_roll) > math.abs(self.data.rolling_time) then
+			instant_roll = math.sign(instant_roll) * math.abs(self.data.rolling_time)
+		end
+
+		self.data.rolling_time = self.data.rolling_time - instant_roll
+
+		self.data.acceleration = self.data.acceleration + math.sign(instant_roll) * roll_dir * 60
+
 		friction = friction + 5
 
 		local previous_velocity = self.object:get_velocity()
@@ -99,6 +118,8 @@ minetest.register_entity("roadtrip_vehicles:car", {
 		new_velocity.z = new_velocity.z / (1 + friction * dtime)
 
 		self.object:add_velocity(new_velocity - previous_velocity)
+
+		self.data.old_pos = self.object:get_pos()
 	end,
 })
 
