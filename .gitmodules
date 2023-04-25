@@ -1,3 +1,6 @@
 [submodule "mods/b"]
 	path = mods/b
 	url = https://github.com/tigris-mt/b.git
+[submodule "mods/player_api"]
+	path = mods/player_api
+	url = https://github.com/minetest-game/player_api
