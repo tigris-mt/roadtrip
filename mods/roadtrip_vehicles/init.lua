@@ -1,10 +1,19 @@
 local gravity = vector.new(0, -9.81, 0)
 
+minetest.register_entity("roadtrip_vehicles:tire", {
+	initial_properties = {
+		mesh = "roadtrip_vehicles_tire.b3d",
+		textures = {"roadtrip_sand.png^[colorize:#00f:127"},
+		pointable = true,
+		visual = "mesh",
+	},
+})
+
 minetest.register_entity("roadtrip_vehicles:car", {
 	initial_properties = {
 		physical = true,
 		collide_with_objects = true,
-		collisionbox = {-1, -0.5, -1, 1, 1, 1},
+		collisionbox = {-1, -1, -1, 1, 1, 1},
 		mesh = "roadtrip_vehicles_car.b3d",
 		textures = {"roadtrip_sand.png^[colorize:#0f0:127"},
 		pointable = true,
@@ -20,6 +29,32 @@ minetest.register_entity("roadtrip_vehicles:car", {
 			rolling_time = 0,
 		}, (#staticdata > 0) and minetest.deserialize(minetest.decompress(staticdata)) or {})
 		self.data.acceleration = vector.copy(self.data.acceleration)
+
+		self.tire_positions = {
+			front_left = {
+				pos = vector.new(12, 0, 12),
+				steers = true,
+			},
+			front_right = {
+				pos = vector.new(12, 0, -12),
+				steers = true,
+			},
+			back_left = {
+				pos = vector.new(-12, 0, 12),
+				steers = false,
+			},
+			back_right = {
+				pos = vector.new(-12, 0, -12),
+				steers = false,
+			},
+		}
+
+		for _,tire_position in pairs(self.tire_positions) do
+			tire_position.tire = minetest.add_entity(self.object:get_pos(), "roadtrip_vehicles:tire")
+			if tire_position.tire then
+				tire_position.tire:set_attach(self.object, "", tire_position.pos, vector.zero(), true)
+			end
+		end
 	end,
 
 	get_staticdata = function(self)
@@ -92,6 +127,12 @@ minetest.register_entity("roadtrip_vehicles:car", {
 				self.object:set_yaw(self.object:get_yaw() - yaw_change)
 
 				break
+			end
+		end
+
+		for _,tire_position in pairs(self.tire_positions) do
+			if tire_position.tire and tire_position.steers then
+				tire_position.tire:set_attach(self.object, "", tire_position.pos, vector.new(0, self.data.steering_angle * 180.0 / math.pi, 0), true)
 			end
 		end
 
