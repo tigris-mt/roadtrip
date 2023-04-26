@@ -7,6 +7,13 @@ minetest.register_entity("roadtrip_vehicles:tire", {
 		pointable = true,
 		visual = "mesh",
 	},
+
+	on_rightclick = function(self, clicker)
+		local parent = self.object:get_attach()
+		if parent then
+			return parent:get_luaentity():on_rightclick(clicker)
+		end
+	end,
 })
 
 minetest.register_entity("roadtrip_vehicles:car", {
@@ -110,7 +117,7 @@ minetest.register_entity("roadtrip_vehicles:car", {
 					friction = friction + 10
 				end
 
-				local steering_angle_limit = 0.9
+				local steering_angle_limit = 0.5
 				local driver_look = driver:get_look_horizontal() + math.pi / 2
 				local car_yaw = self.object:get_yaw()
 
